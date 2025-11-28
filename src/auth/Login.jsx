@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "./AuthContext";
 
-/** A form that allows users to log into an existing account. */
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
 
   const onLogin = async (e) => {
-    e.preventDefault(); // Prevent page reload
+    e.preventDefault();
     setError(null);
 
     const formData = new FormData(e.target);
@@ -17,8 +16,12 @@ export default function Login() {
     const password = formData.get("password");
 
     try {
-      await login({ username, password });
-      navigate("/profile"); // redirect on success
+      const success = await login(username, password);
+      if (success) {
+        navigate("/profile");
+      } else {
+        setError("Invalid username or password.");
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -48,3 +51,4 @@ export default function Login() {
     </div>
   );
 }
+

@@ -2,26 +2,25 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "./AuthContext";
 
-/** A form that allows users to register for a new account */
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-
   const [error, setError] = useState(null);
 
   const onRegister = async (e) => {
-    e.preventDefault(); // Prevent page reload
+    e.preventDefault();
+    setError(null);
 
-    const formData = new FormData(e.target); // Get form data
+    const formData = new FormData(e.target);
     const email = formData.get("email");
     const username = formData.get("username");
     const password = formData.get("password");
 
     try {
-      await register({ email, username, password });
-      navigate("/profile"); // Redirect after successful registration
-    } catch (e) {
-      setError(e.message);
+      await register(email, username, password);
+      navigate("/profile");
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -46,10 +45,10 @@ export default function Register() {
         </form>
 
         <p className="auth-footer">
-          Already have an account?{" "}
-          <Link to="/login">Login here</Link>
+          Already have an account? <Link to="/login">Login here</Link>
         </p>
       </div>
     </div>
   );
 }
+

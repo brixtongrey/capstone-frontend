@@ -39,7 +39,9 @@ export default function Register() {
           <label>Password</label>
           <input type="password" name="password" required />
 
-          <button type="submit" className="auth-btn">Register</button>
+          <button type="submit" className="auth-btn">
+            Register
+          </button>
 
           {error && <p className="error-text">{error}</p>}
         </form>
@@ -51,4 +53,3 @@ export default function Register() {
     </div>
   );
 }
-

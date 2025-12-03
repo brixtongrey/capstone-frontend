@@ -7,7 +7,9 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
+  // const [user, setUser] = useState(
+  // JSON.parse(localStorage.getItem("user")) || null
+  // );
   const [isError, setIsError] = useState(false);
   const navigate = useNavigate();
 
@@ -20,6 +22,8 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, username, password }),
       });
 
+      console.log(response);
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -28,15 +32,15 @@ export function AuthProvider({ children }) {
 
       // Save token and user
       setToken(data.token);
-      setUser(data.user);
+      // setUser(data.user);
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // localStorage.setItem("user", JSON.stringify(data.user));
       setIsError(false);
 
       return data;
     } catch (error) {
       setIsError(true);
-      console.error("Registration Error:", error);
+      console.error("Registration Error:", error.message);
       throw error;
     }
   }
@@ -58,9 +62,9 @@ export function AuthProvider({ children }) {
       }
 
       setToken(data.token);
-      setUser(data.user);
+      // setUser(data.user);
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // localStorage.setItem("user", JSON.stringify(data.user));
       setIsError(false);
 
       return true;
@@ -97,16 +101,18 @@ export function AuthProvider({ children }) {
   // Logout
   function logout() {
     setToken(null);
-    setUser(null);
+    // setUser(null);
     setIsError(false);
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // localStorage.removeItem("user");
     navigate("/login");
   }
 
   const value = useMemo(() => {
-    return { token, user, isError, register, login, authenticate, logout };
-  }, [token, user, isError]);
+    // return { token, user, isError, register, login, authenticate, logout };
+    return { token, isError, register, login, authenticate, logout };
+    // }, [token, user, isError]);
+  }, [token, isError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

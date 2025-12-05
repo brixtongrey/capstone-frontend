@@ -6,16 +6,20 @@ export default function Groups() {
   const { token } = useAuth();
   const [error, setError] = useState(null);
 
-  const handleGroupFormSubmission = async () => {
+  const handleGroupFormSubmission = async (e) => {
     try {
-      await createNewGroup(token, "new group name", "some description");
+      e.preventDefault();
+      setError(null);
+
+      const formData = new FormData(e.target);
+      const group_name = formData.get("group_name");
+      const description = formData.get("description");
+      await createNewGroup(token, group_name, description);
     } catch (err) {
       console.error(err.message);
       setError(err.message);
     }
   };
-  console.log(token);
-
   return (
     <form className="auth-form" onSubmit={handleGroupFormSubmission}>
       <label>Group name:</label>

@@ -13,7 +13,7 @@ export async function createNewGroup(token, name, description) {
     });
 
     const response = await data.json();
-    if (!response.ok) throw new Error("Error in creating new group");
+    if (!response) throw new Error("Error in creating new group");
 
     return response;
   } catch (error) {

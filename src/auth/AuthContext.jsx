@@ -7,7 +7,16 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
+  const [user, setUser] = useState(() => {
+  try {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  } catch (e) {
+    console.error("Invalid user in localStorage", e);
+    return null;
+  }
+});
+
   const [isError, setIsError] = useState(false);
   const navigate = useNavigate();
 

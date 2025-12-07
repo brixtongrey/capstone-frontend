@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
+import { createExpense } from "../api/expenses";
 
 export default function SplitBills() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  console.log("Current token:", token);
   const navigate = useNavigate();
 
   const [groupName, setGroupName] = useState("");
   const [usernames, setUsernames] = useState([{ username: "" }]);
-  const [items, setItems] = useState([{ name: "", amount: "", assigned: [] }]); // added assigned
+  const [items, setItems] = useState([{ name: "", amount: "", assigned: [] }]);
   const [splitType, setSplitType] = useState("even");
   const [percentages, setPercentages] = useState({});
   const [error, setError] = useState(null);
 
-  // username
+  // Add/remove usernames
   const addUsername = () => setUsernames([...usernames, { username: "" }]);
   const removeUsername = (index) => {
     const updatedUsernames = [...usernames];
@@ -24,7 +26,6 @@ export default function SplitBills() {
     delete updatedPercentages[removed.username];
     setPercentages(updatedPercentages);
 
-    // remove username from items
     const updatedItems = items.map((item) => ({
       ...item,
       assigned: item.assigned.filter((u) => u !== removed.username),
@@ -38,7 +39,6 @@ export default function SplitBills() {
     updatedUsernames[index].username = value;
     setUsernames(updatedUsernames);
 
-    // update percentages
     if (splitType === "percentage" && oldName in percentages) {
       const updatedPercentages = { ...percentages };
       updatedPercentages[value] = updatedPercentages[oldName];
@@ -46,16 +46,16 @@ export default function SplitBills() {
       setPercentages(updatedPercentages);
     }
 
-    // update assigned items
-    const updatedItems = items.map((item) => {
-      const assigned = item.assigned.map((u) => (u === oldName ? value : u));
-      return { ...item, assigned };
-    });
+    const updatedItems = items.map((item) => ({
+      ...item,
+      assigned: item.assigned.map((u) => (u === oldName ? value : u)),
+    }));
     setItems(updatedItems);
   };
 
-  // add item 
-  const addItem = () => setItems([...items, { name: "", amount: "", assigned: [] }]);
+  // Add item
+  const addItem = () =>
+    setItems([...items, { name: "", amount: "", assigned: [] }]);
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...items];
     updatedItems[index][field] = value;
@@ -65,22 +65,22 @@ export default function SplitBills() {
   const toggleAssignUser = (itemIndex, username) => {
     const updatedItems = [...items];
     const assigned = updatedItems[itemIndex].assigned || [];
-    if (assigned.includes(username)) {
-      updatedItems[itemIndex].assigned = assigned.filter((u) => u !== username);
-    } else {
-      updatedItems[itemIndex].assigned = [...assigned, username];
-    }
+    updatedItems[itemIndex].assigned = assigned.includes(username)
+      ? assigned.filter((u) => u !== username)
+      : [...assigned, username];
     setItems(updatedItems);
   };
 
-  // percentage change
   const handlePercentageChange = (username, value) => {
     setPercentages({ ...percentages, [username]: Number(value) });
   };
 
-  // calculate shares
+  // Calculate shares
   const calculateShares = () => {
-    const total = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    const total = items.reduce(
+      (sum, item) => sum + parseFloat(item.amount || 0),
+      0
+    );
     const shares = {};
     const usernameList = usernames.map((u) => u.username).filter(Boolean);
 
@@ -91,7 +91,8 @@ export default function SplitBills() {
       usernameList.forEach((u) => (shares[u] = 0));
       items.forEach((item) => {
         const assigned = item.assigned.length ? item.assigned : usernameList;
-        const perAssigned = parseFloat(item.amount || 0) / (assigned.length || 1);
+        const perAssigned =
+          parseFloat(item.amount || 0) / (assigned.length || 1);
         assigned.forEach((u) => (shares[u] += perAssigned));
       });
       usernameList.forEach((u) => (shares[u] = shares[u].toFixed(2)));
@@ -105,9 +106,10 @@ export default function SplitBills() {
     return shares;
   };
 
-// form:
+  // Submit form
   const onSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submit clicked"); // debugging
     setError(null);
 
     const usernameList = usernames.map((u) => u.username).filter(Boolean);
@@ -117,6 +119,7 @@ export default function SplitBills() {
     }
 
     const shares = calculateShares();
+
     const billData = {
       groupName,
       usernames: usernameList,
@@ -128,13 +131,16 @@ export default function SplitBills() {
 
     try {
       console.log("Submitting bill:", billData);
-      navigate("/splitbills/summary");
+      const response = await createExpense(token, billData);
+      console.log("Expense created:", response);
+      navigate("/profile"); // Only navigate after success
     } catch (err) {
+      console.error("Failed to submit bill:", err);
       setError("Failed to submit bill. Please try again.");
     }
   };
 
-  const shares = calculateShares();
+  const shares = calculateShares(); // calculate shares for display
 
   return (
     <div className="auth-container">
@@ -177,14 +183,18 @@ export default function SplitBills() {
                 type="text"
                 placeholder="Item Name"
                 value={item.name}
-                onChange={(e) => handleItemChange(index, "name", e.target.value)}
+                onChange={(e) =>
+                  handleItemChange(index, "name", e.target.value)
+                }
                 required
               />
               <input
                 type="number"
                 placeholder="Amount"
                 value={item.amount}
-                onChange={(e) => handleItemChange(index, "amount", e.target.value)}
+                onChange={(e) =>
+                  handleItemChange(index, "amount", e.target.value)
+                }
                 required
                 min="0"
                 step="0.01"
@@ -248,7 +258,9 @@ export default function SplitBills() {
                   <input
                     type="number"
                     value={percentages[u.username] || ""}
-                    onChange={(e) => handlePercentageChange(u.username, e.target.value)}
+                    onChange={(e) =>
+                      handlePercentageChange(u.username, e.target.value)
+                    }
                     min="0"
                     max="100"
                     required
@@ -277,4 +289,5 @@ export default function SplitBills() {
     </div>
   );
 }
+
 

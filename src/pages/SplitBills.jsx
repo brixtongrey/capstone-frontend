@@ -15,7 +15,6 @@ export default function SplitBills() {
   const [percentages, setPercentages] = useState({});
   const [error, setError] = useState(null);
 
-  // Add/remove usernames
   const addUsername = () => setUsernames([...usernames, { username: "" }]);
   const removeUsername = (index) => {
     const updatedUsernames = [...usernames];
@@ -53,7 +52,6 @@ export default function SplitBills() {
     setItems(updatedItems);
   };
 
-  // Add item
   const addItem = () =>
     setItems([...items, { name: "", amount: "", assigned: [] }]);
   const handleItemChange = (index, field, value) => {
@@ -75,7 +73,6 @@ export default function SplitBills() {
     setPercentages({ ...percentages, [username]: Number(value) });
   };
 
-  // Calculate shares
   const calculateShares = () => {
     const total = items.reduce(
       (sum, item) => sum + parseFloat(item.amount || 0),
@@ -107,14 +104,12 @@ export default function SplitBills() {
   };
 
 const mapSplitTypeToDB = (type) => {
-  if (type === "byItem") return "custom"; // map "byItem" → "custom"
+  if (type === "byItem") return "custom";
   return type; 
 };
 
-  // Submit form
   const onSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submit clicked"); // debugging
     setError(null);
 
     const usernameList = usernames.map((u) => u.username).filter(Boolean);
@@ -135,17 +130,14 @@ const mapSplitTypeToDB = (type) => {
     };
 
     try {
-      console.log("Submitting bill:", billData);
       const response = await createExpense(token, billData);
-      console.log("Expense created:", response);
-      navigate("/profile"); // Only navigate after success
+      navigate("/profile"); 
     } catch (err) {
-      console.error("Failed to submit bill:", err);
       setError("Failed to submit bill. Please try again.");
     }
   };
 
-  const shares = calculateShares(); // calculate shares for display
+  const shares = calculateShares();
 
   return (
     <div className="auth-container">

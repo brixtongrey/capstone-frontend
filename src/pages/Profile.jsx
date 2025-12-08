@@ -15,10 +15,8 @@ export default function Profile() {
       try {
         const data = await getProfile(token);
 
-        // Convert totalOwed to number safely
         setTotalOwed(Number(data.totalOwed) || 0);
 
-        // Set expenses, fallback to empty array
         setExpenses(data.expenses || []);
       } catch (err) {
         console.error("Failed to load profile:", err);

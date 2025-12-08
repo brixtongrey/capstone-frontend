@@ -1,14 +1,16 @@
-import { useNavigate, useEffect } from "react-router";
+import { useNavigate } from "react-router";
 import { getUserGroups } from "../api/groups";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function GroupsList() {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const [userGroups, setUserGroups] = useState([]);
 
-  const syncGroups = async (token) => {
+  const [userGroups, setUserGroups] = useState([]);
+  const [error, setError] = useState(null);
+
+  const syncGroups = async () => {
     const data = await getUserGroups(token);
     setUserGroups(data);
   };
@@ -19,7 +21,7 @@ export default function GroupsList() {
 
   useEffect(() => {
     syncGroups();
-  }, [token]);
+  }, []);
 
   return (
     <div>

@@ -5,7 +5,6 @@ import { createExpense } from "../api/expenses";
 
 export default function SplitBills() {
   const { user, token } = useAuth();
-  console.log("Current token:", token);
   const navigate = useNavigate();
 
   const [groupName, setGroupName] = useState("");

@@ -20,8 +20,7 @@ export default function GroupsList() {
   };
 
   const handleViewGroupDetails = (groupId) => {
-    console.log(`navigate(${groupId});`);
-    // navigate(groupId);
+    navigate(String(groupId));
   };
 
   useEffect(() => {

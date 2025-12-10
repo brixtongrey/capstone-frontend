@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { createExpense } from "../api/expenses";
+import { searchUsers, searchGroups } from "../api/search";
+import Search from "./Search";
 
 export default function SplitBills() {
   const { user, token } = useAuth();
@@ -9,16 +11,54 @@ export default function SplitBills() {
 
   const [groupName, setGroupName] = useState("");
   const [usernames, setUsernames] = useState([{ username: "" }]);
+
+  const [groupQuery, setGroupQuery] = useState("");
+  const [groupResults, setGroupResults] = useState([]);
+  const [userQuery, setUserQuery] = useState("");
+  const [userResults, setUserResults] = useState([]);
+
   const [items, setItems] = useState([{ name: "", amount: "", assigned: [] }]);
   const [splitType, setSplitType] = useState("even");
   const [percentages, setPercentages] = useState({});
   const [error, setError] = useState(null);
 
-  const addUsername = () => setUsernames([...usernames, { username: "" }]);
+  useEffect(() => {
+    if (!groupQuery) {
+      setGroupResults([]);
+      return;
+    }
+
+    const fetchGroups = async () => {
+      const data = await searchGroups(token, groupQuery);
+      setGroupResults(data);
+    };
+
+    fetchGroups();
+  }, [groupQuery, token]);
+
+  useEffect(() => {
+    if (!userQuery) {
+      setUserResults([]);
+      return;
+    }
+
+    const fetchUsers = async () => {
+      const data = await searchUsers(token, userQuery);
+      setUserResults(data);
+    };
+
+    fetchUsers();
+  }, [userQuery, token]);
+
+
+  const addUsername = () => {
+    setUsernames([...usernames, { username: "" }]);
+  };
+
   const removeUsername = (index) => {
-    const updatedUsernames = [...usernames];
-    const removed = updatedUsernames.splice(index, 1)[0];
-    setUsernames(updatedUsernames);
+    const updated = [...usernames];
+    const removed = updated.splice(index, 1)[0];
+    setUsernames(updated);
 
     const updatedPercentages = { ...percentages };
     delete updatedPercentages[removed.username];
@@ -33,39 +73,46 @@ export default function SplitBills() {
 
   const handleUsernameChange = (index, value) => {
     const updatedUsernames = [...usernames];
-    const oldName = updatedUsernames[index].username;
+    const oldValue = updatedUsernames[index].username;
     updatedUsernames[index].username = value;
     setUsernames(updatedUsernames);
 
-    if (splitType === "percentage" && oldName in percentages) {
+    if (splitType === "percentage" && oldValue in percentages) {
       const updatedPercentages = { ...percentages };
-      updatedPercentages[value] = updatedPercentages[oldName];
-      delete updatedPercentages[oldName];
+      updatedPercentages[value] = updatedPercentages[oldValue];
+      delete updatedPercentages[oldValue];
       setPercentages(updatedPercentages);
     }
 
     const updatedItems = items.map((item) => ({
       ...item,
-      assigned: item.assigned.map((u) => (u === oldName ? value : u)),
+      assigned: item.assigned.map((u) => (u === oldValue ? value : u)),
     }));
     setItems(updatedItems);
   };
 
   const addItem = () =>
     setItems([...items, { name: "", amount: "", assigned: [] }]);
+
   const handleItemChange = (index, field, value) => {
-    const updatedItems = [...items];
-    updatedItems[index][field] = value;
-    setItems(updatedItems);
+    const updated = [...items];
+    updated[index][field] = value;
+    setItems(updated);
+  };
+
+  const removeItem = (index) => {
+    const updated = [...items];
+    updated.splice(index, 1);
+    setItems(updated);
   };
 
   const toggleAssignUser = (itemIndex, username) => {
-    const updatedItems = [...items];
-    const assigned = updatedItems[itemIndex].assigned || [];
-    updatedItems[itemIndex].assigned = assigned.includes(username)
+    const updated = [...items];
+    const assigned = updated[itemIndex].assigned || [];
+    updated[itemIndex].assigned = assigned.includes(username)
       ? assigned.filter((u) => u !== username)
       : [...assigned, username];
-    setItems(updatedItems);
+    setItems(updated);
   };
 
   const handlePercentageChange = (username, value) => {
@@ -77,6 +124,7 @@ export default function SplitBills() {
       (sum, item) => sum + parseFloat(item.amount || 0),
       0
     );
+
     const shares = {};
     const usernameList = usernames.map((u) => u.username).filter(Boolean);
 
@@ -87,25 +135,25 @@ export default function SplitBills() {
       usernameList.forEach((u) => (shares[u] = 0));
       items.forEach((item) => {
         const assigned = item.assigned.length ? item.assigned : usernameList;
-        const perAssigned =
-          parseFloat(item.amount || 0) / (assigned.length || 1);
-        assigned.forEach((u) => (shares[u] += perAssigned));
+        const perItem = parseFloat(item.amount || 0) / (assigned.length || 1);
+        assigned.forEach((u) => (shares[u] += perItem));
       });
       usernameList.forEach((u) => (shares[u] = shares[u].toFixed(2)));
     } else if (splitType === "percentage") {
       usernameList.forEach((u) => {
-        const pct = percentages[u] || 0;
-        shares[u] = ((total * pct) / 100).toFixed(2);
+        shares[u] = ((total * (percentages[u] || 0)) / 100).toFixed(2);
       });
     }
 
     return shares;
   };
 
-const mapSplitTypeToDB = (type) => {
-  if (type === "byItem") return "custom";
-  return type; 
-};
+  const shares = calculateShares();
+
+  const mapSplitTypeToDB = (type) => {
+    if (type === "byItem") return "custom";
+    return type;
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -117,7 +165,16 @@ const mapSplitTypeToDB = (type) => {
       return;
     }
 
-    const shares = calculateShares();
+    if (splitType === "percentage") {
+      const totalPct = Object.values(percentages).reduce(
+        (sum, value) => sum + Number(value),
+        0
+      );
+      if (totalPct !== 100) {
+        setError("Percentages must total 100%.");
+        return;
+      }
+    }
 
     const billData = {
       groupName,
@@ -129,38 +186,51 @@ const mapSplitTypeToDB = (type) => {
     };
 
     try {
-      const response = await createExpense(token, billData);
-      navigate("/profile"); 
+      await createExpense(token, billData);
+      navigate("/profile");
     } catch (err) {
       setError("Failed to submit bill. Please try again.");
     }
   };
 
-  const shares = calculateShares();
-
   return (
     <div className="auth-container">
       <div className="auth-card">
         <h1>Add New Bill</h1>
+
         <form className="auth-form" onSubmit={onSubmit}>
-          <label>Group Name</label>
-          <input
-            type="text"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            required
+      
+          <h3>Group</h3>
+          <Search
+            placeholder="Search groups..."
+            query={groupQuery}
+            setQuery={(str) => {
+              setGroupQuery(str);
+              setGroupName(str);
+            }}
+            results={groupResults}
+            onSelect={(g) => {
+              setGroupName(g.name);
+              setGroupQuery(g.name);
+              setGroupResults([]);
+            }}
           />
 
           <h3>Usernames</h3>
           {usernames.map((u, index) => (
             <div key={index} className="username-item">
-              <input
-                type="text"
-                placeholder="Username"
-                value={u.username}
-                onChange={(e) => handleUsernameChange(index, e.target.value)}
-                required
+              <Search
+                placeholder="Search username..."
+                query={u.username}
+                setQuery={(value) => handleUsernameChange(index, value)}
+                results={userResults}
+                onSelect={(selected) => {
+                  handleUsernameChange(index, selected.username);
+                  setUserQuery("");
+                  setUserResults([]);
+                }}
               />
+
               {usernames.length > 1 && (
                 <button type="button" onClick={() => removeUsername(index)}>
                   Remove
@@ -168,6 +238,7 @@ const mapSplitTypeToDB = (type) => {
               )}
             </div>
           ))}
+
           <button type="button" onClick={addUsername} className="auth-btn">
             Add Username
           </button>
@@ -195,6 +266,13 @@ const mapSplitTypeToDB = (type) => {
                 min="0"
                 step="0.01"
               />
+
+              {items.length > 1 && (
+                <button type="button" onClick={() => removeItem(index)}>
+                  Remove Item
+                </button>
+              )}
+
               {splitType === "byItem" && (
                 <div>
                   <label>Assign to:</label>
@@ -212,6 +290,7 @@ const mapSplitTypeToDB = (type) => {
               )}
             </div>
           ))}
+
           <button type="button" onClick={addItem} className="auth-btn">
             Add Item
           </button>
@@ -247,7 +326,7 @@ const mapSplitTypeToDB = (type) => {
 
           {splitType === "percentage" && (
             <div>
-              <h4>Set Percentage per Username</h4>
+              <h4>Set Percentage per User</h4>
               {usernames.map((u) => (
                 <div key={u.username}>
                   <label>{u.username || "Username"} %</label>
@@ -285,5 +364,3 @@ const mapSplitTypeToDB = (type) => {
     </div>
   );
 }
-
-

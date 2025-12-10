@@ -22,5 +22,3 @@ export async function createExpense(token, billData) {
     throw err;
   }
 }
-
-

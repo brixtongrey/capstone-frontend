@@ -36,21 +36,6 @@ export default function SplitBills() {
     fetchGroups();
   }, [groupQuery, token]);
 
-  useEffect(() => {
-    if (!userQuery) {
-      setUserResults([]);
-      return;
-    }
-
-    const fetchUsers = async () => {
-      const data = await searchUsers(token, userQuery);
-      setUserResults(data);
-    };
-
-    fetchUsers();
-  }, [userQuery, token]);
-
-
   const addUsername = () => {
     setUsernames([...usernames, { username: "" }]);
   };
@@ -199,7 +184,6 @@ export default function SplitBills() {
         <h1>Add New Bill</h1>
 
         <form className="auth-form" onSubmit={onSubmit}>
-      
           <h3>Group</h3>
           <Search
             placeholder="Search groups..."
@@ -219,18 +203,13 @@ export default function SplitBills() {
           <h3>Usernames</h3>
           {usernames.map((u, index) => (
             <div key={index} className="username-item">
-              <Search
-                placeholder="Search username..."
-                query={u.username}
-                setQuery={(value) => handleUsernameChange(index, value)}
-                results={userResults}
-                onSelect={(selected) => {
-                  handleUsernameChange(index, selected.username);
-                  setUserQuery("");
-                  setUserResults([]);
-                }}
+              <input
+                type="text"
+                placeholder="Username"
+                value={u.username}
+                onChange={(e) => handleUsernameChange(index, e.target.value)}
+                required
               />
-
               {usernames.length > 1 && (
                 <button type="button" onClick={() => removeUsername(index)}>
                   Remove
@@ -238,7 +217,6 @@ export default function SplitBills() {
               )}
             </div>
           ))}
-
           <button type="button" onClick={addUsername} className="auth-btn">
             Add Username
           </button>

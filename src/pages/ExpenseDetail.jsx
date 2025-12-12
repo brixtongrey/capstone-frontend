@@ -8,8 +8,13 @@ export default function ExpenseDetail() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [selectedExpense, setSelectedExpense] = useState({});
+  const [isPaid, setIsPaid] = useState(false);
   const handleBackButton = () => {
     navigate(-1);
+  };
+
+  const handleMarkAsPaid = () => {
+    setIsPaid(!isPaid);
   };
 
   const syncExpenseDetails = async () => {
@@ -50,6 +55,9 @@ export default function ExpenseDetail() {
             </tr>
           </tbody>
         </table>
+        <button onClick={handleMarkAsPaid}>
+          {isPaid ? "Paid" : "Mark as Paid"}
+        </button>
       </section>
     </div>
   );

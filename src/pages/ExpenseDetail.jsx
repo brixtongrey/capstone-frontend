@@ -8,16 +8,15 @@ export default function ExpenseDetail() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [selectedExpense, setSelectedExpense] = useState({});
-  const [is_paid, setIsPaid] = useState(selectedExpense.is_paid);
   const handleBackButton = () => {
     navigate(-1);
   };
 
   const handleMarkAsPaid = async () => {
-    const nextIsPaid = !is_paid;
+    const nextIsPaid = !selectedExpense.is_paid;
     // console.log("Next state: ", nextIsPaid);
-    const updatedElement = await updateExpensePaid(token, id, nextIsPaid);
-    setIsPaid(updatedElement.is_paid);
+    await updateExpensePaid(token, id, nextIsPaid);
+    await syncExpenseDetails();
   };
 
   const syncExpenseDetails = async () => {

@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router";
-import { getExpenseDetails } from "../api/expenses";
+import { getExpenseDetails, updateExpensePaid } from "../api/expenses";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -10,6 +10,12 @@ export default function ExpenseDetail() {
   const [selectedExpense, setSelectedExpense] = useState({});
   const handleBackButton = () => {
     navigate(-1);
+  };
+
+  const handleMarkAsPaid = async () => {
+    const nextIsPaid = !selectedExpense.is_paid;
+    await updateExpensePaid(token, id, nextIsPaid);
+    await syncExpenseDetails();
   };
 
   const syncExpenseDetails = async () => {
@@ -50,6 +56,9 @@ export default function ExpenseDetail() {
             </tr>
           </tbody>
         </table>
+        <button onClick={handleMarkAsPaid}>
+          {selectedExpense.is_paid ? "Paid" : "Mark as Paid"}
+        </button>
       </section>
     </div>
   );

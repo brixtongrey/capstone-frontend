@@ -24,13 +24,6 @@ console.log("Before register");
   await register({ email, username, password });
   console.log("After register");
       navigate("/profile");
-
-    // try {
-    //   await register({ email, username, password });
-    //   navigate("/profile");
-    // } catch (err) {
-    //   setError(err.message);
-    // }
   };
 
   return (
